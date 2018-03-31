@@ -22,17 +22,44 @@
 #include <stdio.h>
 #include "periph/gpio.h"
 #include "rtctimers-millis.h"
+#include "shell.h"
+#include "shell_commands.h"
+#include "thread.h"
+#include "periph/pm.h"
+
+static kernel_pid_t process_pid;
+static msg_t process_msg;
+
+#define MY_PROCESS_STACK_SIZE (1024)
+#define ENABLE_DEBUG (1)
+#include "debug.h"
 
 uint32_t normalno = 0;
 
+static void *process_thread(void *arg) {
+	(void)arg;
+	msg_t message;
+	gpio_set (GPIO_PIN(PORT_B, 0));
+	while (1) {
+		msg_receive (&message);
+		gpio_toggle(GPIO_PIN(PORT_B, 0));
+		printf("LED set to %d\n", gpio_read(GPIO_PIN(PORT_B, 0)));
+	}
+return NULL;
+}
+
 static void btn_led_toggle(void* arg){
 	(void)arg;
-	if ((rtctimers_millis_now() - normalno) > 100)
+	if ((rtctimers_millis_now() - normalno) > 200)
 	{
-		gpio_toggle(GPIO_PIN(PORT_B, 0));
+		msg_send(&process_msg, process_pid);
 		normalno = rtctimers_millis_now();
 	}
 }
+
+static const shell_command_t shell_commands[] = {
+		{NULL, NULL, NULL}
+};
 
 int main(void)
 {
@@ -46,5 +73,9 @@ rtctimers_millis_init();
     gpio_init(GPIO_PIN(PORT_B, 0), GPIO_OUT);
     gpio_set(GPIO_PIN(PORT_B, 0));
     gpio_init_int(GPIO_PIN(PORT_B, 1), GPIO_IN_PU, GPIO_FALLING, btn_led_toggle, NULL);
-    return 0;
+char stack [MY_PROCESS_STACK_SIZE];
+process_pid = thread_create(stack, MY_PROCESS_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, process_thread, NULL, "our process");
+char line_buf[SHELL_DEFAULT_BUFSIZE];
+    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+return 0;
 }

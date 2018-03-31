@@ -11,7 +11,9 @@ RIOTBASE ?= $(CURDIR)/../..
 # which is not needed in a production environment but helps in the
 # development process:
 DEVELHELP ?= 1
-USEMODULE += rtctimers-millis
+USEMODULE += rtctimers-millis 
+USEMODULE +=shell
+USEMODULE +=ps
 FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_gpio
 
