@@ -22,6 +22,8 @@
 
 #include "periph/gpio.h"
 #include "periph/pm.h"
+#include "periph/adc.h"
+#include "periph/pwm.h"
 #include "rtctimers-millis.h"
 #include "shell_commands.h"
 #include "shell.h"
@@ -50,9 +52,13 @@ static void *process_thread(void *arg) {
     while (1) {
         msg_receive(&message);
         gpio_toggle(GPIO_PIN(PORT_B, 0));
+        gpio_toggle(GPIO_PIN(PORT_A, 5));
         DEBUG("LED set to %d\n", gpio_read(GPIO_PIN(PORT_B, 0)));
         opt3001_measure(&opt3001, &opt3001_data);
         printf("Luminocity is %lu\n", opt3001_data.luminocity);
+        int vref = adc_sample(ADC_VREF_INDEX, ADC_RES_12BIT);
+        ad = (ad*vref)/4096;
+        printf("ADC value: %d\n", ad);
     }
     return NULL;
 }
@@ -79,6 +85,8 @@ int main(void)
 
     opt3001.i2c = 1;
     opt3001_init(&opt3001);
+
+    adc_init(3);
 
     puts("Hello World!");
 
